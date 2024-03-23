@@ -24,7 +24,7 @@ export const reducer: FrameReducer<State> = (state, action): State => {
 
   const parsedDepositFormAmount =
     isSignedIn && state.v === View.depositParams && !!data?.inputText
-      ? parseFloat(data.inputText.trim())
+      ? getRoundNumber(parseFloat(data.inputText.trim()))
       : undefined
   const depositTokenAmount =
     !!parsedDepositFormAmount &&
@@ -36,7 +36,7 @@ export const reducer: FrameReducer<State> = (state, action): State => {
 
   const parsedWithdrawFormAmount =
     state.v === View.withdrawParams && !!data?.inputText
-      ? parseFloat(data.inputText.trim())
+      ? getRoundNumber(parseFloat(data.inputText.trim()))
       : undefined
   const withdrawShareAmount =
     !!parsedWithdrawFormAmount &&
@@ -163,12 +163,16 @@ export const getBalances = async (
     ]
   })
 
-  const shareBalance = parseFloat(
-    formatUnits(balances[0].result as bigint, vaultData.token.decimals)
+  const shareBalance = getRoundNumber(
+    parseFloat(formatUnits(balances[0].result as bigint, vaultData.token.decimals))
   )
-  const tokenBalance = parseFloat(
-    formatUnits(balances[1].result as bigint, vaultData.token.decimals)
+  const tokenBalance = getRoundNumber(
+    parseFloat(formatUnits(balances[1].result as bigint, vaultData.token.decimals))
   )
 
   return { shareBalance, tokenBalance }
+}
+
+export const getRoundNumber = (num: number) => {
+  return Math.floor(num * 1e3) / 1e3
 }

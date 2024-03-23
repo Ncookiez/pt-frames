@@ -9,7 +9,7 @@ import { Address, createPublicClient, formatUnits, http, parseUnits } from 'viem
 import { erc20ABI, vaultABI } from '@generationsoftware/hyperstructure-client-js'
 import { FrameData, FrameProps, VaultData, View } from './types'
 import { baseClassName } from './constants'
-import { getBalances, getFrameData } from './utils'
+import { getBalances, getFrameData, getRoundNumber } from './utils'
 import { PTLogo, PrizeVaultFrameImageContent } from './FrameImage'
 import { rpcUrls } from '../contants'
 
@@ -181,7 +181,9 @@ const DepositTxFrame = async (props: FrameProps) => {
       args: [frameData.state.a as Address]
     })
 
-    const newShareBalance = parseFloat(formatUnits(_newShareBalance, vaultData.token.decimals))
+    const newShareBalance = getRoundNumber(
+      parseFloat(formatUnits(_newShareBalance, vaultData.token.decimals))
+    )
 
     frameData.state.sb = newShareBalance
 
