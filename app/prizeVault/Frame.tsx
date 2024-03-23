@@ -50,8 +50,8 @@ const WelcomeFrame = (props: FrameProps) => {
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
         <div tw={baseClassName}>
-          <span>Deposit {vaultData.token.symbol} for a chance to win daily!</span>
-          <span>Withdraw anytime.</span>
+          <span tw='mb-8'>Deposit {vaultData.token.symbol} for a chance to win daily!</span>
+          <span tw='mb-8'>Withdraw anytime.</span>
           <PTLogo />
         </div>
       </FrameImage>
@@ -78,8 +78,8 @@ const AccountFrame = async (props: FrameProps) => {
       <FrameContainer {...frameData}>
         <FrameImage aspectRatio='1:1'>
           <div tw={baseClassName}>
-            <span>Enter your wallet address</span>
-            {isInvalidWalletAddress && <span>Invalid wallet address</span>}
+            <span tw='mb-8'>Enter your wallet address</span>
+            {isInvalidWalletAddress && <span tw='mb-8 text-[#FFB6B6]'>Invalid wallet address</span>}
             <PTLogo />
           </div>
         </FrameImage>
@@ -153,7 +153,7 @@ const DepositParamsFrame = (props: FrameProps) => {
           }}
         >
           <span>Choose an amount to deposit</span>
-          {isInvalidAmount && <span>Invalid token amount</span>}
+          {isInvalidAmount && <span tw='mt-8 text-[#FFB6B6]'>Invalid token amount</span>}
         </PrizeVaultFrameImageContent>
       </FrameImage>
       <FrameInput text={`Enter an amount of ${vaultData.token.symbol}...`} />
@@ -230,7 +230,9 @@ const DepositTxFrame = async (props: FrameProps) => {
               symbol: vaultData.token.symbol
             }}
           >
-            {isJustApproved && <span>You've just approved some {vaultData.token.symbol}!</span>}
+            {isJustApproved && (
+              <span tw='mb-8'>You've just approved some {vaultData.token.symbol}!</span>
+            )}
             <span>Ready to deposit</span>
           </PrizeVaultFrameImageContent>
         </FrameImage>
@@ -286,7 +288,7 @@ const WithdrawParamsFrame = (props: FrameProps) => {
           shareBalance={frameData.state.sb}
         >
           <span>Choose an amount to withdraw</span>
-          {isInvalidAmount && <span>Invalid amount</span>}
+          {isInvalidAmount && <span tw='mt-8 text-[#FFB6B6]'>Invalid amount</span>}
         </PrizeVaultFrameImageContent>
       </FrameImage>
       <FrameInput text={`Enter an amount of ${vaultData.symbol}...`} />

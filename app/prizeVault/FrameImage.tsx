@@ -18,27 +18,25 @@ export const PrizeVaultFrameImageContent = (props: PrizeVaultFrameImageContentPr
   return (
     <div tw={baseClassName}>
       <Card tw='w-full grow'>{children}</Card>
-      <Card tw='flex-row mt-8'>
-        <>
-          <div tw='w-full flex flex-col items-center'>
-            <span tw='font-semibold'>Balance</span>
-            {shareBalance !== undefined ? (
-              <span tw='text-6xl'>
-                {shareBalance.toLocaleString()} {vaultData.symbol}
-              </span>
-            ) : (
-              <span>-</span>
-            )}
-          </div>
-          {extraContent !== undefined && (
-            <div tw='flex flex-col items-center'>
-              <span>{extraContent.text}</span>
-              <span>
-                {extraContent.amount.toLocaleString()} {extraContent.symbol}
-              </span>
-            </div>
+      <Card tw='w-full flex-row justify-start mt-8'>
+        <div tw='flex flex-col grow items-center'>
+          <span tw='font-semibold'>Balance</span>
+          {shareBalance !== undefined ? (
+            <span tw='text-6xl'>
+              {shareBalance.toLocaleString()} {vaultData.symbol}
+            </span>
+          ) : (
+            <span>-</span>
           )}
-        </>
+        </div>
+        {extraContent !== undefined && (
+          <div tw='w-1/2 flex flex-col items-center border-l-2 border-[#f5f0ff]'>
+            <span>{extraContent.text}</span>
+            <span>
+              {extraContent.amount.toLocaleString()} {extraContent.symbol}
+            </span>
+          </div>
+        )}
       </Card>
       <div tw='w-full flex mt-8'>
         <PTLogo />

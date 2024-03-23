@@ -14,7 +14,9 @@ export const reducer: FrameReducer<State> = (state, action): State => {
     !!data.inputText &&
     isAddress(data.inputText.trim())
       ? (data.inputText.trim() as Address)
-      : state.a
+      : state.v === View.account && data?.buttonIndex === 3
+        ? undefined
+        : state.a
 
   const parsedDepositFormAmount =
     state.v === View.depositParams && !!data?.inputText
