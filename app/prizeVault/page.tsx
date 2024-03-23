@@ -14,7 +14,6 @@ import { FrameData, FrameProps, State, View } from './types'
 import { baseClassName, initialState, vaultData } from './constants'
 import { reducer } from './utils'
 
-// This is a react server component only
 export default async function Home({ searchParams }: NextServerPageProps) {
   const previousFrame = getPreviousFrame<State>(searchParams)
   const [state] = useFramesReducer<State>(reducer, initialState, previousFrame)

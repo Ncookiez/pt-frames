@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "debugger": "frames"
   },
   "dependencies": {
     "@generationsoftware/hyperstructure-client-js": "^1.11.0",
@@ -16,6 +17,7 @@
     "viem": "^2.8.18"
   },
   "devDependencies": {
+    "@frames.js/debugger": "^0.1.9",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
