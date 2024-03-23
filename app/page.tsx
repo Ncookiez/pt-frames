@@ -16,6 +16,7 @@ export default function Home() {
       <ul>
         <li>
           <Link href='/prizeVault/pUSDC'>/prizeVault/pUSDC</Link>
+          <Link href='/prizeVault/pWETH'>/prizeVault/pWETH</Link>
           <Link href='/prizeVault/test-usdc'>/prizeVault/test-usdc</Link>
         </li>
       </ul>
