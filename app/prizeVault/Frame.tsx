@@ -11,6 +11,7 @@ import { FrameData, FrameProps, VaultData, View } from './types'
 import { baseClassName } from './constants'
 import { getBalances, getFrameData } from './utils'
 import { PTLogo, PrizeVaultFrameImageContent } from './FrameImage'
+import { rpcUrls } from '../contants'
 
 interface PrizeVaultFrameProps {
   vaultData: VaultData
@@ -22,7 +23,10 @@ export const PrizeVaultFrame = async (props: PrizeVaultFrameProps) => {
 
   const frame = await getFrameData(vaultData, searchParams)
 
-  const client = createPublicClient({ chain: vaultData.chain, transport: http() })
+  const client = createPublicClient({
+    chain: vaultData.chain,
+    transport: http(rpcUrls[vaultData.chain.id])
+  })
 
   const frameProps: FrameProps = { frameData: frame, vaultData, client }
 

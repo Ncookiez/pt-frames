@@ -19,3 +19,4 @@ Example: `http://localhost:3000/prizeVault`
 ## Deployment Notes
 
 - The env var `NEXT_PUBLIC_HOST` must be set to the URL where the app is being hosted.
+- Optionally, add env vars for any RPC URLs you want to use - see keys on `app/constants.ts`.
