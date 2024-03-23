@@ -174,5 +174,5 @@ export const getBalances = async (
 }
 
 export const getRoundNumber = (num: number) => {
-  return Math.floor(num * 1e3) / 1e3
+  return Math.floor(num * 1e4) / 1e4
 }
