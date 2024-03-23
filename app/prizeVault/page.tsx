@@ -21,8 +21,8 @@ export default async function Home({ searchParams }: NextServerPageProps) {
   const frameMessage = await getFrameMessage(previousFrame.postBody)
 
   const frame: FrameData = {
-    pathname: '/examples/transaction',
-    postUrl: '/examples/transaction/frames',
+    pathname: '/prizeVault',
+    postUrl: '/prizeVault/frames',
     state,
     previousFrame,
     message: frameMessage
@@ -166,12 +166,12 @@ const DepositFrame = async (props: FrameProps) => {
       {allowance >= parsedDepositTokenAmount ? (
         <FrameButton
           action='tx'
-          target={`/examples/transaction/deposit?a=${frameData.state.a}&da=${frameData.state.da}`}
+          target={`/prizeVault/deposit?a=${frameData.state.a}&da=${frameData.state.da}`}
         >
           Deposit
         </FrameButton>
       ) : (
-        <FrameButton action='tx' target={`/examples/transaction/approve?aa=${frameData.state.da}`}>
+        <FrameButton action='tx' target={`/prizeVault/approve?aa=${frameData.state.da}`}>
           Approve
         </FrameButton>
       )}
@@ -199,7 +199,7 @@ const WithdrawFrame = (props: FrameProps) => {
       <FrameButton>Back</FrameButton>
       <FrameButton
         action='tx'
-        target={`/examples/transaction/withdraw?a=${frameData.state.a}&wa=${frameData.state.wa}`}
+        target={`/prizeVault/withdraw?a=${frameData.state.a}&wa=${frameData.state.wa}`}
       >
         Withdraw
       </FrameButton>
