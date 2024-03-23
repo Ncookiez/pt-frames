@@ -1,8 +1,9 @@
-import type { FrameReducer } from 'frames.js/next/types'
-import { State, View } from './types'
+import type { NextServerPageProps, FrameReducer } from 'frames.js/next/types'
+import { FrameData, State, VaultData, View } from './types'
 import { Address, isAddress } from 'viem'
 import { initialState } from './constants'
 import type { ActionIndex } from 'frames.js'
+import { getFrameMessage, getPreviousFrame, useFramesReducer } from 'frames.js/next/server'
 
 export const reducer: FrameReducer<State> = (state, action): State => {
   const data = action.postBody?.untrustedData
@@ -94,4 +95,21 @@ export const getView = (
   }
 
   return view
+}
+
+export const getFrameData = async (
+  vaultData: VaultData,
+  searchParams: NextServerPageProps['searchParams']
+): Promise<FrameData> => {
+  const previousFrame = getPreviousFrame<State>(searchParams)
+  const [state] = useFramesReducer<State>(reducer, initialState, previousFrame)
+  const frameMessage = await getFrameMessage(previousFrame.postBody)
+
+  return {
+    pathname: `/prizeVault/${vaultData.id}`,
+    postUrl: '/post',
+    state,
+    previousFrame,
+    message: frameMessage
+  }
 }

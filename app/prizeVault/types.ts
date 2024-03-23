@@ -4,6 +4,7 @@ import type { Address, Chain, HttpTransport, PublicClient } from 'viem'
 
 export interface FrameProps {
   frameData: FrameData
+  vaultData: VaultData
   client: PublicClient<HttpTransport, Chain>
 }
 
@@ -12,6 +13,7 @@ export interface FrameData extends Omit<Parameters<typeof FrameContainer<State>>
 }
 
 export interface VaultData {
+  id: string
   chain: Chain
   address: Address
   symbol: string

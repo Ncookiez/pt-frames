@@ -3,47 +3,41 @@ import {
   FrameContainer,
   FrameImage,
   FrameInput,
-  NextServerPageProps,
-  getFrameMessage,
-  getPreviousFrame,
-  useFramesReducer
+  NextServerPageProps
 } from 'frames.js/next/server'
 import { Address, createPublicClient, formatUnits, http, parseUnits } from 'viem'
 import { erc20ABI, vaultABI } from '@generationsoftware/hyperstructure-client-js'
-import { FrameData, FrameProps, State, View } from './types'
-import { baseClassName, initialState, vaultData } from './constants'
-import { reducer } from './utils'
+import { FrameProps, VaultData, View } from './types'
+import { baseClassName } from './constants'
+import { getFrameData } from './utils'
 
-export default async function Home({ searchParams }: NextServerPageProps) {
-  const previousFrame = getPreviousFrame<State>(searchParams)
-  const [state] = useFramesReducer<State>(reducer, initialState, previousFrame)
-  const frameMessage = await getFrameMessage(previousFrame.postBody)
+interface PrizeVaultFrameProps {
+  vaultData: VaultData
+  searchParams: NextServerPageProps['searchParams']
+}
 
-  const frame: FrameData = {
-    pathname: '/prizeVault',
-    postUrl: '/prizeVault/frames',
-    state,
-    previousFrame,
-    message: frameMessage
-  }
+export const PrizeVaultFrame = async (props: PrizeVaultFrameProps) => {
+  const { vaultData, searchParams } = props
+
+  const frame = await getFrameData(vaultData, searchParams)
 
   const client = createPublicClient({ chain: vaultData.chain, transport: http() })
 
   if (frame.state.v === View.welcome) {
-    return <WelcomeFrame frameData={frame} client={client} />
+    return <WelcomeFrame frameData={frame} vaultData={vaultData} client={client} />
   } else if (frame.state.v === View.account) {
-    return <AccountFrame frameData={frame} client={client} />
+    return <AccountFrame frameData={frame} vaultData={vaultData} client={client} />
   } else if (frame.state.v === View.deposit) {
-    return <DepositFrame frameData={frame} client={client} />
+    return <DepositFrame frameData={frame} vaultData={vaultData} client={client} />
   } else if (frame.state.v === View.withdraw) {
-    return <WithdrawFrame frameData={frame} client={client} />
+    return <WithdrawFrame frameData={frame} vaultData={vaultData} client={client} />
   }
 
   return <></>
 }
 
 const WelcomeFrame = (props: FrameProps) => {
-  const { frameData } = props
+  const { frameData, vaultData } = props
 
   const isInvalidWalletAddress =
     !!frameData.previousFrame.prevState && frameData.previousFrame.prevState.v === View.welcome
@@ -66,7 +60,7 @@ const WelcomeFrame = (props: FrameProps) => {
 }
 
 const AccountFrame = async (props: FrameProps) => {
-  const { frameData, client } = props
+  const { frameData, vaultData, client } = props
 
   const balances = await client.multicall({
     contracts: [
@@ -124,7 +118,7 @@ const AccountFrame = async (props: FrameProps) => {
 }
 
 const DepositFrame = async (props: FrameProps) => {
-  const { frameData, client } = props
+  const { frameData, vaultData, client } = props
 
   const allowance = await client.readContract({
     address: vaultData.token.address,
@@ -165,12 +159,15 @@ const DepositFrame = async (props: FrameProps) => {
       {allowance >= parsedDepositTokenAmount ? (
         <FrameButton
           action='tx'
-          target={`/prizeVault/deposit?a=${frameData.state.a}&da=${frameData.state.da}`}
+          target={`/prizeVault/${vaultData.id}/deposit?a=${frameData.state.a}&da=${frameData.state.da}`}
         >
           Deposit
         </FrameButton>
       ) : (
-        <FrameButton action='tx' target={`/prizeVault/approve?aa=${frameData.state.da}`}>
+        <FrameButton
+          action='tx'
+          target={`/prizeVault/${vaultData.id}/approve?aa=${frameData.state.da}`}
+        >
           Approve
         </FrameButton>
       )}
@@ -179,7 +176,7 @@ const DepositFrame = async (props: FrameProps) => {
 }
 
 const WithdrawFrame = (props: FrameProps) => {
-  const { frameData } = props
+  const { frameData, vaultData } = props
 
   // TODO: show tx hash if successful (and hide withdraw button)
 
@@ -198,7 +195,7 @@ const WithdrawFrame = (props: FrameProps) => {
       <FrameButton>Back</FrameButton>
       <FrameButton
         action='tx'
-        target={`/prizeVault/withdraw?a=${frameData.state.a}&wa=${frameData.state.wa}`}
+        target={`/prizeVault/${vaultData.id}/withdraw?a=${frameData.state.a}&wa=${frameData.state.wa}`}
       >
         Withdraw
       </FrameButton>
