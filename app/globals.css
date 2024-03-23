@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --pt-bg: #21064e;
+  --pt-text: #f5f0ff;
+}
+
+html {
+  color: var(--pt-text);
+  background-color: var(--pt-bg);
+  font-feature-settings: 'calt' off;
+}
