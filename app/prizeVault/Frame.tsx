@@ -149,10 +149,16 @@ const DepositFrame = async (props: FrameProps) => {
       <FrameImage aspectRatio='1:1'>
         <div tw={baseClassName}>
           <span>DEPOSIT</span>
-          <span>
-            Depositing {frameData.state.da} {vaultData.token.symbol}
-          </span>
-          {allowance < parsedDepositTokenAmount && <span>(you need to approve these tokens)</span>}
+          {allowance < parsedDepositTokenAmount ? (
+            <span>
+              In order to deposit {frameData.state.da} {vaultData.token.symbol} you need to approve
+              these tokens.
+            </span>
+          ) : (
+            <span>
+              Ready to deposit {frameData.state.da} {vaultData.token.symbol}!
+            </span>
+          )}
         </div>
       </FrameImage>
       <FrameButton>Back</FrameButton>
@@ -188,7 +194,7 @@ const WithdrawFrame = (props: FrameProps) => {
         <div tw={baseClassName}>
           <span>WITHDRAW</span>
           <span>
-            Withdrawing {frameData.state.wa} {vaultData.symbol}
+            Ready to withdraw {frameData.state.wa} {vaultData.symbol}!
           </span>
         </div>
       </FrameImage>
