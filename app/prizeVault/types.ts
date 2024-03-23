@@ -27,8 +27,11 @@ export interface VaultData {
 export enum View {
   welcome = 0,
   account = 1,
-  deposit = 2,
-  withdraw = 3
+  depositParams = 2,
+  approveTx = 3,
+  depositTx = 4,
+  withdrawParams = 5,
+  withdrawTx = 6
 }
 
 export type State = {

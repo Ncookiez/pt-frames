@@ -9,49 +9,53 @@ export const reducer: FrameReducer<State> = (state, action): State => {
   const data = action.postBody?.untrustedData
 
   const userAddress =
-    state.v === View.welcome &&
+    state.v === View.account &&
     data?.buttonIndex === 1 &&
-    !!data?.inputText &&
+    !!data.inputText &&
     isAddress(data.inputText.trim())
       ? (data.inputText.trim() as Address)
       : state.a
 
-  const parsedAccountFormAmount =
-    state.v === View.account && !!data?.inputText ? parseFloat(data.inputText.trim()) : undefined
-
+  const parsedDepositFormAmount =
+    state.v === View.depositParams && !!data?.inputText
+      ? parseFloat(data.inputText.trim())
+      : undefined
   const depositTokenAmount =
-    data?.buttonIndex === 2 &&
-    !!parsedAccountFormAmount &&
-    parsedAccountFormAmount > 0 &&
+    !!parsedDepositFormAmount &&
+    parsedDepositFormAmount > 0 &&
     !!state.tb &&
-    parsedAccountFormAmount <= state.tb
-      ? parsedAccountFormAmount
+    parsedDepositFormAmount <= state.tb
+      ? parsedDepositFormAmount
       : state.da
 
+  const parsedWithdrawFormAmount =
+    state.v === View.withdrawParams && !!data?.inputText
+      ? parseFloat(data.inputText.trim())
+      : undefined
   const withdrawShareAmount =
-    data?.buttonIndex === 3 &&
-    !!parsedAccountFormAmount &&
-    parsedAccountFormAmount > 0 &&
+    !!parsedWithdrawFormAmount &&
+    parsedWithdrawFormAmount > 0 &&
     !!state.sb &&
-    parsedAccountFormAmount <= state.sb
-      ? parsedAccountFormAmount
+    parsedWithdrawFormAmount <= state.sb
+      ? parsedWithdrawFormAmount
       : state.wa
 
   const view = getView(state.v, {
     buttonIndex: data?.buttonIndex,
+    isSignedIn: !!state.a,
     userAddress,
     depositTokenAmount,
     withdrawShareAmount
   })
 
-  if (view === View.account) {
-    return { ...state, v: view, a: userAddress }
-  } else if (view === View.deposit) {
+  if (view === View.welcome) {
+    return initialState
+  } else if (view === View.approveTx || view === View.depositTx) {
     return { ...state, v: view, a: userAddress, da: depositTokenAmount }
-  } else if (view === View.withdraw) {
+  } else if (view === View.withdrawTx) {
     return { ...state, v: view, a: userAddress, wa: withdrawShareAmount }
   } else {
-    return initialState
+    return { ...state, v: view, a: userAddress }
   }
 }
 
@@ -59,38 +63,53 @@ export const getView = (
   currentView: View,
   data: {
     buttonIndex?: ActionIndex
+    isSignedIn?: boolean
     userAddress?: Address
     depositTokenAmount?: number
     withdrawShareAmount?: number
   }
 ) => {
-  let view: View = 0
+  let view = View.welcome
 
   if (currentView === View.welcome) {
-    if (data.buttonIndex === 1 && !!data.userAddress) {
-      view = View.account
+    if (data.buttonIndex === 1 || data.buttonIndex === 2) {
+      view = View.account // TODO: this should go to depositparams view if user has cached fid and clicked button 1
     }
   } else if (currentView === View.account) {
-    if (data?.buttonIndex === 1) {
-      view = View.welcome
-    } else if (data?.buttonIndex === 2 && !!data.depositTokenAmount) {
-      view = View.deposit
-    } else if (data?.buttonIndex === 3 && !!data.withdrawShareAmount) {
-      view = View.withdraw
+    if (data.buttonIndex === 1 && !!data.isSignedIn && !!data.userAddress) {
+      view = View.depositParams
+    } else if (data.buttonIndex === 2 && !!data.isSignedIn && !!data.userAddress) {
+      view = View.withdrawParams
     } else {
       view = View.account
     }
-  } else if (currentView === View.deposit) {
-    if (data?.buttonIndex === 1) {
+  } else if (currentView === View.depositParams) {
+    if (data.buttonIndex === 1) {
       view = View.account
+    } else if (!!data.depositTokenAmount) {
+      view = View.approveTx
     } else {
-      view = View.deposit
+      view = View.depositParams
     }
-  } else if (currentView === View.withdraw) {
-    if (data?.buttonIndex === 1) {
-      view = View.account
+  } else if (currentView === View.approveTx || currentView === View.depositTx) {
+    if (data.buttonIndex === 2) {
+      view = View.depositTx
     } else {
-      view = View.withdraw
+      view = View.account
+    }
+  } else if (currentView === View.withdrawParams) {
+    if (data.buttonIndex === 1) {
+      view = View.account
+    } else if (!!data.withdrawShareAmount) {
+      view = View.withdrawTx
+    } else {
+      view = View.withdrawParams
+    }
+  } else if (currentView === View.withdrawTx) {
+    if (data.buttonIndex === 2) {
+      view = View.withdrawTx
+    } else {
+      view = View.account
     }
   }
 

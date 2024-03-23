@@ -10,6 +10,7 @@ import { erc20ABI, vaultABI } from '@generationsoftware/hyperstructure-client-js
 import { FrameProps, VaultData, View } from './types'
 import { baseClassName } from './constants'
 import { getFrameData } from './utils'
+import { PTLogo, PrizeVaultFrameImageContent } from './FrameImage'
 
 interface PrizeVaultFrameProps {
   vaultData: VaultData
@@ -23,14 +24,20 @@ export const PrizeVaultFrame = async (props: PrizeVaultFrameProps) => {
 
   const client = createPublicClient({ chain: vaultData.chain, transport: http() })
 
+  const frameProps: FrameProps = { frameData: frame, vaultData, client }
+
   if (frame.state.v === View.welcome) {
-    return <WelcomeFrame frameData={frame} vaultData={vaultData} client={client} />
+    return <WelcomeFrame {...frameProps} />
   } else if (frame.state.v === View.account) {
-    return <AccountFrame frameData={frame} vaultData={vaultData} client={client} />
-  } else if (frame.state.v === View.deposit) {
-    return <DepositFrame frameData={frame} vaultData={vaultData} client={client} />
-  } else if (frame.state.v === View.withdraw) {
-    return <WithdrawFrame frameData={frame} vaultData={vaultData} client={client} />
+    return <AccountFrame {...frameProps} />
+  } else if (frame.state.v === View.depositParams) {
+    return <DepositParamsFrame {...frameProps} />
+  } else if (frame.state.v === View.approveTx || frame.state.v === View.depositTx) {
+    return <DepositTxFrame {...frameProps} />
+  } else if (frame.state.v === View.withdrawParams) {
+    return <WithdrawParamsFrame {...frameProps} />
+  } else if (frame.state.v === View.withdrawTx) {
+    return <WithdrawTxFrame {...frameProps} />
   }
 
   return <></>
@@ -39,22 +46,20 @@ export const PrizeVaultFrame = async (props: PrizeVaultFrameProps) => {
 const WelcomeFrame = (props: FrameProps) => {
   const { frameData, vaultData } = props
 
-  const isInvalidWalletAddress =
-    !!frameData.previousFrame.prevState && frameData.previousFrame.prevState.v === View.welcome
-
   return (
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
         <div tw={baseClassName}>
-          <span>WELCOME</span>
-          <span>{vaultData.symbol} VAULT</span>
-          {isInvalidWalletAddress && (
-            <span>You sure that's a valid wallet address? Try again anon</span>
-          )}
+          <span>Deposit {vaultData.token.symbol} for a chance to win daily!</span>
+          <span>Withdraw anytime.</span>
+          <PTLogo />
         </div>
       </FrameImage>
-      <FrameInput text='Enter a wallet address here...' />
-      <FrameButton>Get Started</FrameButton>
+      <FrameButton>Deposit</FrameButton>
+      <FrameButton>View Account</FrameButton>
+      <FrameButton action='link' target='https://pooltogether.com/'>
+        Learn More
+      </FrameButton>
     </FrameContainer>
   )
 }
@@ -62,63 +67,139 @@ const WelcomeFrame = (props: FrameProps) => {
 const AccountFrame = async (props: FrameProps) => {
   const { frameData, vaultData, client } = props
 
+  // TODO: also check backend to see if we have the fid mapped to an address already (unless user clicked "switch account")
+  const userAddress = frameData.state.a
+
+  if (!userAddress) {
+    const isInvalidWalletAddress =
+      frameData.previousFrame.prevState?.v === View.account && !!frameData.message?.inputText
+
+    return (
+      <FrameContainer {...frameData}>
+        <FrameImage aspectRatio='1:1'>
+          <div tw={baseClassName}>
+            <span>Enter your wallet address</span>
+            {isInvalidWalletAddress && <span>Invalid wallet address</span>}
+            <PTLogo />
+          </div>
+        </FrameImage>
+        <FrameInput text='0x...' />
+        <FrameButton>View Account</FrameButton>
+      </FrameContainer>
+    )
+  }
+
   const balances = await client.multicall({
     contracts: [
       {
         address: vaultData.address,
         abi: vaultABI,
         functionName: 'balanceOf',
-        args: [frameData.state.a as Address]
+        args: [userAddress]
       },
       {
         address: vaultData.token.address,
         abi: erc20ABI,
         functionName: 'balanceOf',
-        args: [frameData.state.a as Address]
+        args: [userAddress]
       }
     ]
   })
 
-  frameData.state.sb = parseFloat(
+  const shareBalance = parseFloat(
     formatUnits(balances[0].result as bigint, vaultData.token.decimals)
   )
-  frameData.state.tb = parseFloat(
+  const tokenBalance = parseFloat(
     formatUnits(balances[1].result as bigint, vaultData.token.decimals)
   )
 
-  const isInvalidAmount =
-    !!frameData.previousFrame.prevState && frameData.previousFrame.prevState.v === View.account
+  frameData.state.sb = shareBalance
+  frameData.state.tb = tokenBalance
 
   return (
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
-        <div tw={baseClassName}>
-          <span>ACCOUNT</span>
-          <span>
-            Vault: {frameData.state.sb.toLocaleString()} {vaultData.symbol}
-          </span>
-          <span>
-            Wallet: {frameData.state.tb.toLocaleString()} {vaultData.token.symbol}
-          </span>
-          {isInvalidAmount && (
-            <span>
-              You sure that's a valid amount? You can't deposit more {vaultData.token.symbol} than
-              you have in your wallet, or withdraw more {vaultData.symbol} than you have in the
-              prize vault
-            </span>
-          )}
-        </div>
+        <PrizeVaultFrameImageContent
+          vaultData={vaultData}
+          userAddress={userAddress}
+          shareBalance={shareBalance}
+        >
+          <span>Welcome to your account :)</span>
+        </PrizeVaultFrameImageContent>
       </FrameImage>
-      <FrameInput text='Amount to deposit or withdraw...' />
-      <FrameButton>Back</FrameButton>
       <FrameButton>Deposit</FrameButton>
       <FrameButton>Withdraw</FrameButton>
+      <FrameButton>Switch Account</FrameButton>
     </FrameContainer>
   )
 }
 
-const DepositFrame = async (props: FrameProps) => {
+const DepositParamsFrame = (props: FrameProps) => {
+  const { frameData, vaultData } = props
+
+  const isInvalidAmount = frameData.previousFrame.prevState?.v === View.depositParams
+
+  return (
+    <FrameContainer {...frameData}>
+      <FrameImage aspectRatio='1:1'>
+        <PrizeVaultFrameImageContent
+          vaultData={vaultData}
+          userAddress={frameData.state.a}
+          shareBalance={frameData.state.sb}
+          extraContent={{
+            text: `Available to deposit`,
+            amount: frameData.state.tb ?? 0,
+            symbol: vaultData.token.symbol
+          }}
+        >
+          <span>Choose an amount to deposit</span>
+          {isInvalidAmount && <span>Invalid token amount</span>}
+        </PrizeVaultFrameImageContent>
+      </FrameImage>
+      <FrameInput text={`Enter an amount of ${vaultData.token.symbol}...`} />
+      <FrameButton>Back</FrameButton>
+      <FrameButton>Deposit Amount</FrameButton>
+    </FrameContainer>
+  )
+}
+
+const DepositTxFrame = async (props: FrameProps) => {
   const { frameData, vaultData, client } = props
+
+  const depositTokenAmount = frameData.state.da ?? 0
+
+  const isJustDeposited =
+    frameData.previousFrame.prevState?.v === View.depositTx && !!frameData.message?.transactionId
+
+  if (isJustDeposited) {
+    const _newShareBalance = await client.readContract({
+      address: vaultData.address,
+      abi: vaultABI,
+      functionName: 'balanceOf',
+      args: [frameData.state.a as Address]
+    })
+
+    const newShareBalance = parseFloat(formatUnits(_newShareBalance, vaultData.token.decimals))
+
+    frameData.state.sb = newShareBalance
+
+    return (
+      <FrameContainer {...frameData}>
+        <FrameImage aspectRatio='1:1'>
+          <PrizeVaultFrameImageContent
+            vaultData={vaultData}
+            userAddress={frameData.state.a}
+            shareBalance={newShareBalance}
+          >
+            <span>
+              Deposited {depositTokenAmount.toLocaleString()} {vaultData.token.symbol}
+            </span>
+          </PrizeVaultFrameImageContent>
+        </FrameImage>
+        <FrameButton>Continue</FrameButton>
+      </FrameContainer>
+    )
+  }
 
   const allowance = await client.readContract({
     address: vaultData.token.address,
@@ -127,81 +208,152 @@ const DepositFrame = async (props: FrameProps) => {
     args: [frameData.state.a as Address, vaultData.address]
   })
 
-  // TODO: show tx hash if successful (and hide deposit button)
-  // return (
-  //   <FrameButton
-  //     action="link"
-  //     target={`https://optimistic.etherscan.io/tx/${frameMessage.transactionId}`}
-  //   >
-  //     View on block explorer
-  //   </FrameButton>
-  // )
-
-  // TODO: show error if tx failed?
-
   const parsedDepositTokenAmount = parseUnits(
-    frameData.state.da?.toString() ?? '0',
+    depositTokenAmount.toString(),
     vaultData.token.decimals
   )
+
+  if (allowance >= parsedDepositTokenAmount) {
+    const isJustApproved =
+      frameData.previousFrame.prevState?.v === View.approveTx && !!frameData.message?.transactionId
+
+    return (
+      <FrameContainer {...frameData}>
+        <FrameImage aspectRatio='1:1'>
+          <PrizeVaultFrameImageContent
+            vaultData={vaultData}
+            userAddress={frameData.state.a}
+            shareBalance={frameData.state.sb}
+            extraContent={{
+              text: `Depositing...`,
+              amount: depositTokenAmount,
+              symbol: vaultData.token.symbol
+            }}
+          >
+            {isJustApproved && <span>You've just approved some {vaultData.token.symbol}!</span>}
+            <span>Ready to deposit</span>
+          </PrizeVaultFrameImageContent>
+        </FrameImage>
+        <FrameButton>Cancel</FrameButton>
+        <FrameButton
+          action='tx'
+          target={`/prizeVault/${vaultData.id}/deposit?a=${frameData.state.a}&da=${depositTokenAmount}`}
+        >
+          Deposit
+        </FrameButton>
+      </FrameContainer>
+    )
+  }
 
   return (
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
-        <div tw={baseClassName}>
-          <span>DEPOSIT</span>
-          {allowance < parsedDepositTokenAmount ? (
-            <span>
-              In order to deposit {frameData.state.da} {vaultData.token.symbol} you need to approve
-              these tokens.
-            </span>
-          ) : (
-            <span>
-              Ready to deposit {frameData.state.da} {vaultData.token.symbol}!
-            </span>
-          )}
-        </div>
+        <PrizeVaultFrameImageContent
+          vaultData={vaultData}
+          userAddress={frameData.state.a}
+          shareBalance={frameData.state.sb}
+          extraContent={{
+            text: `Approving...`,
+            amount: depositTokenAmount,
+            symbol: vaultData.token.symbol
+          }}
+        >
+          <span>You need to approve these tokens to deposit</span>
+        </PrizeVaultFrameImageContent>
       </FrameImage>
-      <FrameButton>Back</FrameButton>
-      {allowance >= parsedDepositTokenAmount ? (
-        <FrameButton
-          action='tx'
-          target={`/prizeVault/${vaultData.id}/deposit?a=${frameData.state.a}&da=${frameData.state.da}`}
-        >
-          Deposit
-        </FrameButton>
-      ) : (
-        <FrameButton
-          action='tx'
-          target={`/prizeVault/${vaultData.id}/approve?aa=${frameData.state.da}`}
-        >
-          Approve
-        </FrameButton>
-      )}
+      <FrameButton>Cancel</FrameButton>
+      <FrameButton
+        action='tx'
+        target={`/prizeVault/${vaultData.id}/approve?aa=${depositTokenAmount}`}
+      >
+        Approve
+      </FrameButton>
     </FrameContainer>
   )
 }
 
-const WithdrawFrame = (props: FrameProps) => {
+const WithdrawParamsFrame = (props: FrameProps) => {
   const { frameData, vaultData } = props
 
-  // TODO: show tx hash if successful (and hide withdraw button)
-
-  // TODO: show error if tx failed?
+  const isInvalidAmount = frameData.previousFrame.prevState?.v === View.withdrawParams
 
   return (
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
-        <div tw={baseClassName}>
-          <span>WITHDRAW</span>
-          <span>
-            Ready to withdraw {frameData.state.wa} {vaultData.symbol}!
-          </span>
-        </div>
+        <PrizeVaultFrameImageContent
+          vaultData={vaultData}
+          userAddress={frameData.state.a}
+          shareBalance={frameData.state.sb}
+        >
+          <span>Choose an amount to withdraw</span>
+          {isInvalidAmount && <span>Invalid amount</span>}
+        </PrizeVaultFrameImageContent>
       </FrameImage>
+      <FrameInput text={`Enter an amount of ${vaultData.symbol}...`} />
       <FrameButton>Back</FrameButton>
+      <FrameButton>Withdraw Amount</FrameButton>
+    </FrameContainer>
+  )
+}
+
+const WithdrawTxFrame = async (props: FrameProps) => {
+  const { frameData, vaultData, client } = props
+
+  const withdrawShareAmount = frameData.state.wa ?? 0
+
+  const isJustWithdrew =
+    frameData.previousFrame.prevState?.v === View.withdrawTx && !!frameData.message?.transactionId
+
+  if (isJustWithdrew) {
+    const _newShareBalance = await client.readContract({
+      address: vaultData.address,
+      abi: vaultABI,
+      functionName: 'balanceOf',
+      args: [frameData.state.a as Address]
+    })
+
+    const newShareBalance = parseFloat(formatUnits(_newShareBalance, vaultData.token.decimals))
+
+    frameData.state.sb = newShareBalance
+
+    return (
+      <FrameContainer {...frameData}>
+        <FrameImage aspectRatio='1:1'>
+          <PrizeVaultFrameImageContent
+            vaultData={vaultData}
+            userAddress={frameData.state.a}
+            shareBalance={newShareBalance}
+          >
+            <span>
+              Withdrew {withdrawShareAmount.toLocaleString()} {vaultData.symbol}
+            </span>
+          </PrizeVaultFrameImageContent>
+        </FrameImage>
+        <FrameButton>Continue</FrameButton>
+      </FrameContainer>
+    )
+  }
+
+  return (
+    <FrameContainer {...frameData}>
+      <FrameImage aspectRatio='1:1'>
+        <PrizeVaultFrameImageContent
+          vaultData={vaultData}
+          userAddress={frameData.state.a}
+          shareBalance={frameData.state.sb}
+          extraContent={{
+            text: `Withdrawing...`,
+            amount: withdrawShareAmount,
+            symbol: vaultData.symbol
+          }}
+        >
+          <span>Ready to withdraw</span>
+        </PrizeVaultFrameImageContent>
+      </FrameImage>
+      <FrameButton>Cancel</FrameButton>
       <FrameButton
         action='tx'
-        target={`/prizeVault/${vaultData.id}/withdraw?a=${frameData.state.a}&wa=${frameData.state.wa}`}
+        target={`/prizeVault/${vaultData.id}/withdraw?a=${frameData.state.a}&wa=${withdrawShareAmount}`}
       >
         Withdraw
       </FrameButton>
