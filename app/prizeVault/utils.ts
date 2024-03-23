@@ -23,7 +23,7 @@ export const reducer: FrameReducer<State> = (state, action): State => {
         : state.a
 
   const parsedDepositFormAmount =
-    isSignedIn && state.v === View.depositParams && !!data?.inputText
+    isSignedIn && state.v === View.depositParams && data?.buttonIndex === 2 && !!data?.inputText
       ? getRoundNumber(parseFloat(data.inputText.trim()))
       : undefined
   const depositTokenAmount =
@@ -35,9 +35,11 @@ export const reducer: FrameReducer<State> = (state, action): State => {
       : state.da
 
   const parsedWithdrawFormAmount =
-    state.v === View.withdrawParams && !!data?.inputText
+    state.v === View.withdrawParams && data?.buttonIndex === 2 && !!data?.inputText
       ? getRoundNumber(parseFloat(data.inputText.trim()))
-      : undefined
+      : state.v === View.withdrawParams && data?.buttonIndex === 3
+        ? state.sb
+        : undefined
   const withdrawShareAmount =
     !!parsedWithdrawFormAmount &&
     parsedWithdrawFormAmount > 0 &&

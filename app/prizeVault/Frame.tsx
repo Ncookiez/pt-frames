@@ -291,13 +291,14 @@ const WithdrawParamsFrame = (props: FrameProps) => {
           userAddress={frameData.state.a}
           shareBalance={frameData.state.sb}
         >
-          <span>Choose an amount to withdraw</span>
+          <span>Choose an amount to withdraw (or withdraw all)</span>
           {isInvalidAmount && <span tw='mt-8 text-[#FFB6B6]'>Invalid amount</span>}
         </PrizeVaultFrameImageContent>
       </FrameImage>
       <FrameInput text={`Enter an amount of ${vaultData.symbol}...`} />
       <FrameButton>Back</FrameButton>
       <FrameButton>Withdraw Amount</FrameButton>
+      <FrameButton>Withdraw All</FrameButton>
     </FrameContainer>
   )
 }
