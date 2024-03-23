@@ -15,7 +15,7 @@ export default function Home() {
       <h1 className='text-2xl font-bold'>Frames Available:</h1>
       <ul>
         <li>
-          <Link href='/prizeVault'>/prizeVault</Link>
+          <Link href='/prizeVault/test-usdc'>/prizeVault/test-usdc</Link>
         </li>
       </ul>
     </main>
