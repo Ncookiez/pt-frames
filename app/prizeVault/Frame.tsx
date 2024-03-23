@@ -7,9 +7,9 @@ import {
 } from 'frames.js/next/server'
 import { Address, createPublicClient, formatUnits, http, parseUnits } from 'viem'
 import { erc20ABI, vaultABI } from '@generationsoftware/hyperstructure-client-js'
-import { FrameProps, VaultData, View } from './types'
+import { FrameData, FrameProps, VaultData, View } from './types'
 import { baseClassName } from './constants'
-import { getFrameData } from './utils'
+import { getBalances, getFrameData } from './utils'
 import { PTLogo, PrizeVaultFrameImageContent } from './FrameImage'
 
 interface PrizeVaultFrameProps {
@@ -64,6 +64,27 @@ const WelcomeFrame = (props: FrameProps) => {
   )
 }
 
+const AddressFrame = (props: { frameData: FrameData }) => {
+  const { frameData } = props
+
+  const isInvalidWalletAddress =
+    frameData.previousFrame.prevState?.v === frameData.state.v && !!frameData.message?.inputText
+
+  return (
+    <FrameContainer {...frameData}>
+      <FrameImage aspectRatio='1:1'>
+        <div tw={baseClassName}>
+          <span tw='mb-8'>Enter your wallet address</span>
+          {isInvalidWalletAddress && <span tw='mb-8 text-[#FFB6B6]'>Invalid wallet address</span>}
+          <PTLogo />
+        </div>
+      </FrameImage>
+      <FrameInput text='0x...' />
+      <FrameButton>Submit</FrameButton>
+    </FrameContainer>
+  )
+}
+
 const AccountFrame = async (props: FrameProps) => {
   const { frameData, vaultData, client } = props
 
@@ -71,47 +92,10 @@ const AccountFrame = async (props: FrameProps) => {
   const userAddress = frameData.state.a
 
   if (!userAddress) {
-    const isInvalidWalletAddress =
-      frameData.previousFrame.prevState?.v === View.account && !!frameData.message?.inputText
-
-    return (
-      <FrameContainer {...frameData}>
-        <FrameImage aspectRatio='1:1'>
-          <div tw={baseClassName}>
-            <span tw='mb-8'>Enter your wallet address</span>
-            {isInvalidWalletAddress && <span tw='mb-8 text-[#FFB6B6]'>Invalid wallet address</span>}
-            <PTLogo />
-          </div>
-        </FrameImage>
-        <FrameInput text='0x...' />
-        <FrameButton>View Account</FrameButton>
-      </FrameContainer>
-    )
+    return <AddressFrame frameData={frameData} />
   }
 
-  const balances = await client.multicall({
-    contracts: [
-      {
-        address: vaultData.address,
-        abi: vaultABI,
-        functionName: 'balanceOf',
-        args: [userAddress]
-      },
-      {
-        address: vaultData.token.address,
-        abi: erc20ABI,
-        functionName: 'balanceOf',
-        args: [userAddress]
-      }
-    ]
-  })
-
-  const shareBalance = parseFloat(
-    formatUnits(balances[0].result as bigint, vaultData.token.decimals)
-  )
-  const tokenBalance = parseFloat(
-    formatUnits(balances[1].result as bigint, vaultData.token.decimals)
-  )
+  const { shareBalance, tokenBalance } = await getBalances(vaultData, client, userAddress)
 
   frameData.state.sb = shareBalance
   frameData.state.tb = tokenBalance
@@ -134,10 +118,24 @@ const AccountFrame = async (props: FrameProps) => {
   )
 }
 
-const DepositParamsFrame = (props: FrameProps) => {
-  const { frameData, vaultData } = props
+const DepositParamsFrame = async (props: FrameProps) => {
+  const { frameData, vaultData, client } = props
 
-  const isInvalidAmount = frameData.previousFrame.prevState?.v === View.depositParams
+  // TODO: also check backend to see if we have the fid mapped to an address already
+  const userAddress = frameData.state.a
+
+  if (!userAddress) {
+    return <AddressFrame frameData={frameData} />
+  }
+
+  const { shareBalance, tokenBalance } = await getBalances(vaultData, client, userAddress)
+
+  frameData.state.sb = shareBalance
+  frameData.state.tb = tokenBalance
+
+  const isInvalidAmount =
+    frameData.previousFrame.prevState?.v === View.depositParams &&
+    !!frameData.previousFrame.prevState.a
 
   return (
     <FrameContainer {...frameData}>

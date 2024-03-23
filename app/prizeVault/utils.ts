@@ -1,15 +1,19 @@
 import type { NextServerPageProps, FrameReducer } from 'frames.js/next/types'
 import { FrameData, State, VaultData, View } from './types'
-import { Address, isAddress } from 'viem'
+import { Address, Chain, HttpTransport, PublicClient, formatUnits, isAddress } from 'viem'
 import { initialState } from './constants'
 import type { ActionIndex } from 'frames.js'
 import { getFrameMessage, getPreviousFrame, useFramesReducer } from 'frames.js/next/server'
+import { erc20ABI, vaultABI } from '@generationsoftware/hyperstructure-client-js'
 
 export const reducer: FrameReducer<State> = (state, action): State => {
   const data = action.postBody?.untrustedData
 
+  const isSignedIn = !!state.a
+
   const userAddress =
-    state.v === View.account &&
+    !isSignedIn &&
+    (state.v === View.account || state.v === View.depositParams) &&
     data?.buttonIndex === 1 &&
     !!data.inputText &&
     isAddress(data.inputText.trim())
@@ -19,7 +23,7 @@ export const reducer: FrameReducer<State> = (state, action): State => {
         : state.a
 
   const parsedDepositFormAmount =
-    state.v === View.depositParams && !!data?.inputText
+    isSignedIn && state.v === View.depositParams && !!data?.inputText
       ? parseFloat(data.inputText.trim())
       : undefined
   const depositTokenAmount =
@@ -44,7 +48,7 @@ export const reducer: FrameReducer<State> = (state, action): State => {
 
   const view = getView(state.v, {
     buttonIndex: data?.buttonIndex,
-    isSignedIn: !!state.a,
+    isSignedIn,
     userAddress,
     depositTokenAmount,
     withdrawShareAmount
@@ -74,8 +78,10 @@ export const getView = (
   let view = View.welcome
 
   if (currentView === View.welcome) {
-    if (data.buttonIndex === 1 || data.buttonIndex === 2) {
-      view = View.account // TODO: this should go to depositparams view if user has cached fid and clicked button 1
+    if (data.buttonIndex === 1) {
+      view = View.depositParams
+    } else if (data.buttonIndex === 2) {
+      view = View.account
     }
   } else if (currentView === View.account) {
     if (data.buttonIndex === 1 && !!data.isSignedIn && !!data.userAddress) {
@@ -86,7 +92,7 @@ export const getView = (
       view = View.account
     }
   } else if (currentView === View.depositParams) {
-    if (data.buttonIndex === 1) {
+    if (data.buttonIndex === 1 && !!data.isSignedIn) {
       view = View.account
     } else if (!!data.depositTokenAmount) {
       view = View.approveTx
@@ -133,4 +139,36 @@ export const getFrameData = async (
     previousFrame,
     message: frameMessage
   }
+}
+
+export const getBalances = async (
+  vaultData: VaultData,
+  client: PublicClient<HttpTransport, Chain>,
+  userAddress: Address
+) => {
+  const balances = await client.multicall({
+    contracts: [
+      {
+        address: vaultData.address,
+        abi: vaultABI,
+        functionName: 'balanceOf',
+        args: [userAddress]
+      },
+      {
+        address: vaultData.token.address,
+        abi: erc20ABI,
+        functionName: 'balanceOf',
+        args: [userAddress]
+      }
+    ]
+  })
+
+  const shareBalance = parseFloat(
+    formatUnits(balances[0].result as bigint, vaultData.token.decimals)
+  )
+  const tokenBalance = parseFloat(
+    formatUnits(balances[1].result as bigint, vaultData.token.decimals)
+  )
+
+  return { shareBalance, tokenBalance }
 }
