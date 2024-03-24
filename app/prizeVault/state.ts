@@ -13,7 +13,12 @@ export const useAsyncFramesReducer = async (
     return { frameState: {}, userState: initialState, prevUserState: initialState }
   } else {
     const fid = prevFrame.postBody.untrustedData.fid
-    const prevUserState = (await loadUserState(fid)) ?? initialState
+    let prevUserState = (await loadUserState(fid)) ?? initialState
+
+    if (!prevFrame.prevState.fid) {
+      prevUserState = { ...prevUserState, ...initialState }
+    }
+
     const userState = reducer(JSON.parse(JSON.stringify(prevUserState)), prevFrame, vaultData)
 
     await saveUserState(fid, userState)
@@ -51,10 +56,10 @@ const loadUserState = async (fid: number): Promise<UserState | undefined> => {
 
   const statePath = stateFilePath(fid)
 
-  if (!(await fs.stat(statePath)).isFile()) {
-    return undefined
-  } else {
+  try {
     return JSON.parse(await fs.readFile(statePath, 'utf-8')) as UserState
+  } catch {
+    return undefined
   }
 }
 

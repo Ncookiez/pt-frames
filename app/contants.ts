@@ -34,7 +34,7 @@ export const buttons: Record<View, ViewButton[]> = {
       name: 'submit',
       onClick: (state, vaultData, inputText) => {
         if (!!inputText && isAddress(inputText)) {
-          return { ...state, userAddress: inputText }
+          return { ...state, view: View.account, userAddress: inputText }
         } else {
           return state
         }

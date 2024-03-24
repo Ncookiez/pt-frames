@@ -15,7 +15,7 @@ export const reducer = (
   const data = action.postBody?.untrustedData
 
   if (!!data) {
-    state = buttons[state.view][data.buttonIndex].onClick(state, vaultData, data.inputText)
+    state = buttons[state.view][data.buttonIndex - 1].onClick(state, vaultData, data.inputText)
   }
 
   return state

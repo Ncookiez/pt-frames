@@ -208,7 +208,7 @@ const DepositTxFrame = async (props: FrameProps) => {
   const { frameData, vaultData } = props
 
   const isJustApproved =
-    frameData.prevUserState.view === frameData.userState.view && !!frameData.message?.transactionId
+    frameData.prevUserState.view === View.approveTx && !!frameData.message?.transactionId
 
   return (
     <FrameContainer {...frameData}>
