@@ -2,7 +2,7 @@ import type { NextServerPageProps, PreviousFrame } from 'frames.js/next/types'
 import { FrameData, FrameState, UserState, VaultData } from './types'
 import { Address, Chain, HttpTransport, PublicClient } from 'viem'
 import { initialState } from './constants'
-import { getFrameMessage, getPreviousFrame } from 'frames.js/next/server'
+import { getPreviousFrame } from 'frames.js/next/server'
 import { erc20ABI, vaultABI } from '@generationsoftware/hyperstructure-client-js'
 import { buttons } from '../contants'
 import { useAsyncFramesReducer } from './state'
@@ -26,13 +26,13 @@ export const getFrameData = async (
   searchParams: NextServerPageProps['searchParams']
 ): Promise<FrameData> => {
   const previousFrame = getPreviousFrame<FrameState>(searchParams)
+
   const { frameState, userState, prevUserState } = await useAsyncFramesReducer(
     reducer,
     initialState,
     previousFrame,
     vaultData
   )
-  const frameMessage = await getFrameMessage(previousFrame.postBody)
 
   return {
     pathname: `/prizeVault/${vaultData.id}`,
@@ -40,8 +40,7 @@ export const getFrameData = async (
     state: frameState,
     userState,
     prevUserState,
-    previousFrame,
-    message: frameMessage
+    previousFrame
   }
 }
 

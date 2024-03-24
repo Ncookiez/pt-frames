@@ -1,4 +1,3 @@
-import type { FrameActionDataParsedAndHubContext } from 'frames.js'
 import type { FrameContainer } from 'frames.js/next/server'
 import type { Address, Chain, HttpTransport, PublicClient } from 'viem'
 
@@ -13,7 +12,6 @@ export type FrameContrainerParams = Parameters<typeof FrameContainer<FrameState>
 export interface FrameData extends Omit<FrameContrainerParams, 'children'> {
   userState: UserState
   prevUserState: UserState
-  message: FrameActionDataParsedAndHubContext | null
 }
 
 export interface VaultData {

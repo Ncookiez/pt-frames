@@ -81,7 +81,8 @@ const AddressFrame = (props: FrameProps) => {
   const { frameData } = props
 
   const isInvalidWalletAddress =
-    frameData.prevUserState.view === frameData.userState.view && !!frameData.message?.inputText
+    frameData.prevUserState.view === frameData.userState.view &&
+    !!frameData.previousFrame.postBody?.untrustedData.inputText
 
   return (
     <FrameContainer {...frameData}>
@@ -143,7 +144,8 @@ const DepositParamsFrame = async (props: FrameProps) => {
   await saveUserState(frameData.state.fid as number, frameData.userState)
 
   const isInvalidAmount =
-    frameData.prevUserState.view === frameData.userState.view && !!frameData.message?.inputText
+    frameData.prevUserState.view === frameData.userState.view &&
+    !!frameData.previousFrame.postBody?.untrustedData.inputText
 
   return (
     <FrameContainer {...frameData}>
@@ -208,7 +210,8 @@ const DepositTxFrame = async (props: FrameProps) => {
   const { frameData, vaultData } = props
 
   const isJustApproved =
-    frameData.prevUserState.view === View.approveTx && !!frameData.message?.transactionId
+    frameData.prevUserState.view === View.approveTx &&
+    !!frameData.previousFrame.postBody?.untrustedData.transactionId
 
   return (
     <FrameContainer {...frameData}>
@@ -283,7 +286,8 @@ const RedeemParamsFrame = (props: FrameProps) => {
   const { frameData, vaultData } = props
 
   const isInvalidAmount =
-    frameData.prevUserState.view === frameData.userState.view && !!frameData.message?.inputText
+    frameData.prevUserState.view === frameData.userState.view &&
+    !!frameData.previousFrame.postBody?.untrustedData.inputText
 
   return (
     <FrameContainer {...frameData}>
