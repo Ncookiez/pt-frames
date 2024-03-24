@@ -178,3 +178,26 @@ export const getBalances = async (
 export const getRoundNumber = (num: number) => {
   return Math.floor(num * 1e4) / 1e4
 }
+
+interface Button {
+  name: string
+  onClick: (state: State, inputText?: string) => State
+}
+
+const views: Record<View, Button[]> = {
+  [View.welcome]: [
+    {
+      name: 'deposit',
+      onClick: (state) => {
+        state.v = View.depositParams
+        return state
+      }
+    }
+  ],
+  [View.account]: [],
+  [View.depositParams]: [],
+  [View.approveTx]: [],
+  [View.depositTx]: [],
+  [View.withdrawParams]: [],
+  [View.withdrawTx]: []
+}
