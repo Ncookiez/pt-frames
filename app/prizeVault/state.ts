@@ -1,41 +1,30 @@
 import fs from 'fs/promises'
-import { View } from './types'
-import { Address } from 'viem'
-import { FrameReducer, PreviousFrame } from 'frames.js/next/types'
+import { FrameState, UserState, VaultData } from './types'
+import { PreviousFrame } from 'frames.js/next/types'
+import { reducer as ReducerFn } from './utils'
 
-export type FrameState = {
-  fid: number // farcaster ID
-  t: number // timestamp
-}
-
-export type UserState = {
-  view: View
-  address?: Address
-  balance?: {
-    shares: string
-    assets: string
-  }
-  depositAssetAmount?: string
-  redeemShareAmount?: string
-}
-
-export const useAsyncFrameReducer = async (
-  reducer: FrameReducer<UserState>,
+export const useAsyncFramesReducer = async (
+  reducer: typeof ReducerFn,
   initialState: UserState,
-  prevFrame: PreviousFrame<FrameState>
-): Promise<{ frameState: FrameState | {}; userState: UserState }> => {
+  prevFrame: PreviousFrame<FrameState>,
+  vaultData: VaultData
+): Promise<{ frameState: FrameState; userState: UserState; prevUserState: UserState }> => {
   if (prevFrame.prevState === null || prevFrame.postBody === null) {
-    return { frameState: {}, userState: initialState }
+    return { frameState: {}, userState: initialState, prevUserState: initialState }
   } else {
     const fid = prevFrame.postBody.untrustedData.fid
-    const userState = reducer((await loadUserState(fid)) ?? initialState, prevFrame)
+    const prevUserState = (await loadUserState(fid)) ?? initialState
+    const userState = reducer(JSON.parse(JSON.stringify(prevUserState)), prevFrame, vaultData)
+
     await saveUserState(fid, userState)
+
     return {
       frameState: {
         fid,
         t: Math.floor(Date.now() / 1000)
       },
-      userState
+      userState,
+      prevUserState
     }
   }
 }
@@ -69,7 +58,7 @@ const loadUserState = async (fid: number): Promise<UserState | undefined> => {
   }
 }
 
-const saveUserState = async (fid: number, state: UserState) => {
+export const saveUserState = async (fid: number, state: UserState) => {
   validateFid(fid)
   await tryMakeDataDir()
 

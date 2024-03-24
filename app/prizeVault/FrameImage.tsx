@@ -1,4 +1,4 @@
-import { Address } from 'viem'
+import { Address, formatUnits } from 'viem'
 import { baseClassName } from './constants'
 import { ReactNode } from 'react'
 import { VaultData } from './types'
@@ -8,12 +8,12 @@ interface PrizeVaultFrameImageContentProps {
   vaultData: VaultData
   children: ReactNode
   userAddress?: Address
-  shareBalance?: number
+  shares?: bigint
   extraContent?: { text: string; amount: number; symbol: string }
 }
 
 export const PrizeVaultFrameImageContent = (props: PrizeVaultFrameImageContentProps) => {
-  const { vaultData, children, userAddress, shareBalance, extraContent } = props
+  const { vaultData, children, userAddress, shares, extraContent } = props
 
   return (
     <div tw={baseClassName}>
@@ -21,9 +21,12 @@ export const PrizeVaultFrameImageContent = (props: PrizeVaultFrameImageContentPr
       <Card tw='w-full flex-row justify-start mt-8'>
         <div tw='flex flex-col grow items-center'>
           <span tw='font-semibold'>Balance</span>
-          {shareBalance !== undefined ? (
+          {shares !== undefined ? (
             <span tw='text-6xl'>
-              {shareBalance.toLocaleString()} {vaultData.symbol}
+              {parseFloat(formatUnits(shares, vaultData.asset.decimals)).toLocaleString('en', {
+                maximumFractionDigits: 4
+              })}{' '}
+              {vaultData.symbol}
             </span>
           ) : (
             <span>-</span>
@@ -33,7 +36,10 @@ export const PrizeVaultFrameImageContent = (props: PrizeVaultFrameImageContentPr
           <div tw='w-1/2 flex flex-col items-center border-l-2 border-[#f5f0ff]'>
             <span>{extraContent.text}</span>
             <span>
-              {extraContent.amount.toLocaleString()} {extraContent.symbol}
+              {extraContent.amount.toLocaleString('en', {
+                maximumFractionDigits: 4
+              })}{' '}
+              {extraContent.symbol}
             </span>
           </div>
         )}

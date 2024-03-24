@@ -8,7 +8,11 @@ export interface FrameProps {
   client: PublicClient<HttpTransport, Chain>
 }
 
-export interface FrameData extends Omit<Parameters<typeof FrameContainer<State>>[0], 'children'> {
+export type FrameContrainerParams = Parameters<typeof FrameContainer<FrameState>>[0]
+
+export interface FrameData extends Omit<FrameContrainerParams, 'children'> {
+  userState: UserState
+  prevUserState: UserState
   message: FrameActionDataParsedAndHubContext | null
 }
 
@@ -17,7 +21,7 @@ export interface VaultData {
   chain: Chain
   address: Address
   symbol: string
-  token: {
+  asset: {
     address: Address
     decimals: number
     symbol: string
@@ -26,19 +30,32 @@ export interface VaultData {
 
 export enum View {
   welcome = 0,
-  account = 1,
-  depositParams = 2,
-  approveTx = 3,
-  depositTx = 4,
-  withdrawParams = 5,
-  withdrawTx = 6
+  address = 1,
+  account = 2,
+  depositParams = 3,
+  approveTx = 4,
+  depositTx = 5,
+  depositTxSuccess = 6,
+  redeemParams = 7,
+  redeemTx = 8,
+  redeemTxSuccess = 9
 }
 
-export type State = {
-  v: View // view
-  a?: Address // user address
-  sb?: number // user share balance
-  tb?: number // user token balance
-  da?: number // deposit token amount
-  wa?: number // withdraw share amount
+export interface ViewButton {
+  name: string
+  onClick: (state: UserState, vaultData: VaultData, inputText?: string) => UserState
+}
+
+export type FrameState = {
+  fid?: number // farcaster ID
+  t?: number // timestamp
+}
+
+export type UserState = {
+  view: View
+  userAddress?: Address
+  balance?: { shares: string; assets: string }
+  allowance?: string
+  depositAssetAmount?: string
+  redeemShareAmount?: string
 }

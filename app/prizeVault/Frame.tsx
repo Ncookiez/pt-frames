@@ -5,13 +5,13 @@ import {
   FrameInput,
   NextServerPageProps
 } from 'frames.js/next/server'
-import { Address, createPublicClient, formatUnits, http, parseUnits } from 'viem'
-import { erc20ABI, vaultABI } from '@generationsoftware/hyperstructure-client-js'
-import { FrameData, FrameProps, VaultData, View } from './types'
+import { Address, createPublicClient, formatUnits, http } from 'viem'
+import { FrameProps, VaultData, View } from './types'
 import { baseClassName } from './constants'
-import { getBalances, getFrameData, getRoundNumber } from './utils'
+import { getBalances, getFrameData } from './utils'
 import { PTLogo, PrizeVaultFrameImageContent } from './FrameImage'
 import { rpcUrls } from '../contants'
+import { saveUserState } from './state'
 
 interface PrizeVaultFrameProps {
   vaultData: VaultData
@@ -21,27 +21,36 @@ interface PrizeVaultFrameProps {
 export const PrizeVaultFrame = async (props: PrizeVaultFrameProps) => {
   const { vaultData, searchParams } = props
 
-  const frame = await getFrameData(vaultData, searchParams)
+  const frameData = await getFrameData(vaultData, searchParams)
 
   const client = createPublicClient({
     chain: vaultData.chain,
     transport: http(rpcUrls[vaultData.chain.id])
   })
 
-  const frameProps: FrameProps = { frameData: frame, vaultData, client }
+  const frameProps: FrameProps = { frameData, vaultData, client }
+  const view = frameData.userState.view
 
-  if (frame.state.v === View.welcome) {
+  if (view === View.welcome) {
     return <WelcomeFrame {...frameProps} />
-  } else if (frame.state.v === View.account) {
+  } else if (view === View.address) {
+    return <AddressFrame {...frameProps} />
+  } else if (view === View.account) {
     return <AccountFrame {...frameProps} />
-  } else if (frame.state.v === View.depositParams) {
+  } else if (view === View.depositParams) {
     return <DepositParamsFrame {...frameProps} />
-  } else if (frame.state.v === View.approveTx || frame.state.v === View.depositTx) {
+  } else if (view === View.approveTx) {
+    return <ApproveTxFrame {...frameProps} />
+  } else if (view === View.depositTx) {
     return <DepositTxFrame {...frameProps} />
-  } else if (frame.state.v === View.withdrawParams) {
-    return <WithdrawParamsFrame {...frameProps} />
-  } else if (frame.state.v === View.withdrawTx) {
-    return <WithdrawTxFrame {...frameProps} />
+  } else if (view === View.depositTxSuccess) {
+    return <DepositTxSuccessFrame {...frameProps} />
+  } else if (view === View.redeemParams) {
+    return <RedeemParamsFrame {...frameProps} />
+  } else if (view === View.redeemTx) {
+    return <RedeemTxFrame {...frameProps} />
+  } else if (view === View.redeemTxSuccess) {
+    return <RedeemTxSuccessFrame {...frameProps} />
   }
 
   return <></>
@@ -54,7 +63,7 @@ const WelcomeFrame = (props: FrameProps) => {
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
         <div tw={baseClassName}>
-          <span tw='mb-8'>Deposit {vaultData.token.symbol} for a chance to win daily!</span>
+          <span tw='mb-8'>Deposit {vaultData.asset.symbol} for a chance to win daily!</span>
           <span tw='mb-8'>Withdraw anytime.</span>
           <PTLogo />
         </div>
@@ -68,11 +77,11 @@ const WelcomeFrame = (props: FrameProps) => {
   )
 }
 
-const AddressFrame = (props: { frameData: FrameData }) => {
+const AddressFrame = (props: FrameProps) => {
   const { frameData } = props
 
   const isInvalidWalletAddress =
-    frameData.previousFrame.prevState?.v === frameData.state.v && !!frameData.message?.inputText
+    frameData.prevUserState.view === frameData.userState.view && !!frameData.message?.inputText
 
   return (
     <FrameContainer {...frameData}>
@@ -92,25 +101,23 @@ const AddressFrame = (props: { frameData: FrameData }) => {
 const AccountFrame = async (props: FrameProps) => {
   const { frameData, vaultData, client } = props
 
-  // TODO: also check backend to see if we have the fid mapped to an address already (unless user clicked "switch account")
-  const userAddress = frameData.state.a
+  const { shares, assets, allowance } = await getBalances(
+    vaultData,
+    client,
+    frameData.userState.userAddress as Address
+  )
 
-  if (!userAddress) {
-    return <AddressFrame frameData={frameData} />
-  }
-
-  const { shareBalance, tokenBalance } = await getBalances(vaultData, client, userAddress)
-
-  frameData.state.sb = shareBalance
-  frameData.state.tb = tokenBalance
+  frameData.userState.balance = { shares: shares.toString(), assets: assets.toString() }
+  frameData.userState.allowance = allowance.toString()
+  await saveUserState(frameData.state.fid as number, frameData.userState)
 
   return (
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
         <PrizeVaultFrameImageContent
           vaultData={vaultData}
-          userAddress={userAddress}
-          shareBalance={shareBalance}
+          userAddress={frameData.userState.userAddress}
+          shares={shares}
         >
           <span>Welcome to your account :)</span>
         </PrizeVaultFrameImageContent>
@@ -125,143 +132,62 @@ const AccountFrame = async (props: FrameProps) => {
 const DepositParamsFrame = async (props: FrameProps) => {
   const { frameData, vaultData, client } = props
 
-  // TODO: also check backend to see if we have the fid mapped to an address already
-  const userAddress = frameData.state.a
+  const { shares, assets, allowance } = await getBalances(
+    vaultData,
+    client,
+    frameData.userState.userAddress as Address
+  )
 
-  if (!userAddress) {
-    return <AddressFrame frameData={frameData} />
-  }
-
-  const { shareBalance, tokenBalance } = await getBalances(vaultData, client, userAddress)
-
-  frameData.state.sb = shareBalance
-  frameData.state.tb = tokenBalance
+  frameData.userState.balance = { shares: shares.toString(), assets: assets.toString() }
+  frameData.userState.allowance = allowance.toString()
+  await saveUserState(frameData.state.fid as number, frameData.userState)
 
   const isInvalidAmount =
-    frameData.previousFrame.prevState?.v === View.depositParams &&
-    !!frameData.previousFrame.prevState.a
+    frameData.prevUserState.view === frameData.userState.view && !!frameData.message?.inputText
 
   return (
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
         <PrizeVaultFrameImageContent
           vaultData={vaultData}
-          userAddress={frameData.state.a}
-          shareBalance={frameData.state.sb}
+          userAddress={frameData.userState.userAddress}
+          shares={shares}
           extraContent={{
             text: `Available to deposit`,
-            amount: frameData.state.tb ?? 0,
-            symbol: vaultData.token.symbol
+            amount: parseFloat(formatUnits(assets, vaultData.asset.decimals)),
+            symbol: vaultData.asset.symbol
           }}
         >
           <span>Choose an amount to deposit</span>
           {isInvalidAmount && <span tw='mt-8 text-[#FFB6B6]'>Invalid token amount</span>}
         </PrizeVaultFrameImageContent>
       </FrameImage>
-      <FrameInput text={`Enter an amount of ${vaultData.token.symbol}...`} />
+      <FrameInput text={`Enter an amount of ${vaultData.asset.symbol}...`} />
       <FrameButton>Back</FrameButton>
       <FrameButton>Deposit Amount</FrameButton>
     </FrameContainer>
   )
 }
 
-const DepositTxFrame = async (props: FrameProps) => {
-  const { frameData, vaultData, client } = props
-
-  const depositTokenAmount = frameData.state.da ?? 0
-
-  const isJustDeposited =
-    frameData.previousFrame.prevState?.v === View.depositTx && !!frameData.message?.transactionId
-
-  if (isJustDeposited) {
-    const _newShareBalance = await client.readContract({
-      address: vaultData.address,
-      abi: vaultABI,
-      functionName: 'balanceOf',
-      args: [frameData.state.a as Address]
-    })
-
-    const newShareBalance = getRoundNumber(
-      parseFloat(formatUnits(_newShareBalance, vaultData.token.decimals))
-    )
-
-    frameData.state.sb = newShareBalance
-
-    return (
-      <FrameContainer {...frameData}>
-        <FrameImage aspectRatio='1:1'>
-          <PrizeVaultFrameImageContent
-            vaultData={vaultData}
-            userAddress={frameData.state.a}
-            shareBalance={newShareBalance}
-          >
-            <span>
-              Deposited {depositTokenAmount.toLocaleString()} {vaultData.token.symbol}
-            </span>
-          </PrizeVaultFrameImageContent>
-        </FrameImage>
-        <FrameButton>Continue</FrameButton>
-      </FrameContainer>
-    )
-  }
-
-  const allowance = await client.readContract({
-    address: vaultData.token.address,
-    abi: erc20ABI,
-    functionName: 'allowance',
-    args: [frameData.state.a as Address, vaultData.address]
-  })
-
-  const parsedDepositTokenAmount = parseUnits(
-    depositTokenAmount.toString(),
-    vaultData.token.decimals
-  )
-
-  if (allowance >= parsedDepositTokenAmount) {
-    const isJustApproved =
-      frameData.previousFrame.prevState?.v === View.approveTx && !!frameData.message?.transactionId
-
-    return (
-      <FrameContainer {...frameData}>
-        <FrameImage aspectRatio='1:1'>
-          <PrizeVaultFrameImageContent
-            vaultData={vaultData}
-            userAddress={frameData.state.a}
-            shareBalance={frameData.state.sb}
-            extraContent={{
-              text: `Depositing...`,
-              amount: depositTokenAmount,
-              symbol: vaultData.token.symbol
-            }}
-          >
-            {isJustApproved && (
-              <span tw='mb-8'>You've just approved some {vaultData.token.symbol}!</span>
-            )}
-            <span>Ready to deposit</span>
-          </PrizeVaultFrameImageContent>
-        </FrameImage>
-        <FrameButton>Cancel</FrameButton>
-        <FrameButton
-          action='tx'
-          target={`/prizeVault/${vaultData.id}/deposit?a=${frameData.state.a}&da=${depositTokenAmount}`}
-        >
-          Deposit
-        </FrameButton>
-      </FrameContainer>
-    )
-  }
+const ApproveTxFrame = async (props: FrameProps) => {
+  const { frameData, vaultData } = props
 
   return (
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
         <PrizeVaultFrameImageContent
           vaultData={vaultData}
-          userAddress={frameData.state.a}
-          shareBalance={frameData.state.sb}
+          userAddress={frameData.userState.userAddress}
+          shares={BigInt(frameData.userState.balance?.shares ?? '0')}
           extraContent={{
             text: `Approving...`,
-            amount: depositTokenAmount,
-            symbol: vaultData.token.symbol
+            amount: parseFloat(
+              formatUnits(
+                BigInt(frameData.userState.depositAssetAmount ?? '0'),
+                vaultData.asset.decimals
+              )
+            ),
+            symbol: vaultData.asset.symbol
           }}
         >
           <span>You need to approve these tokens to deposit</span>
@@ -270,7 +196,7 @@ const DepositTxFrame = async (props: FrameProps) => {
       <FrameButton>Cancel</FrameButton>
       <FrameButton
         action='tx'
-        target={`/prizeVault/${vaultData.id}/approve?aa=${depositTokenAmount}`}
+        target={`/prizeVault/${vaultData.id}/approve?aa=${frameData.userState.depositAssetAmount}`}
       >
         Approve
       </FrameButton>
@@ -278,18 +204,94 @@ const DepositTxFrame = async (props: FrameProps) => {
   )
 }
 
-const WithdrawParamsFrame = (props: FrameProps) => {
+const DepositTxFrame = async (props: FrameProps) => {
   const { frameData, vaultData } = props
 
-  const isInvalidAmount = frameData.previousFrame.prevState?.v === View.withdrawParams
+  const isJustApproved =
+    frameData.prevUserState.view === frameData.userState.view && !!frameData.message?.transactionId
 
   return (
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
         <PrizeVaultFrameImageContent
           vaultData={vaultData}
-          userAddress={frameData.state.a}
-          shareBalance={frameData.state.sb}
+          userAddress={frameData.userState.userAddress}
+          shares={BigInt(frameData.userState.balance?.shares ?? '0')}
+          extraContent={{
+            text: `Depositing...`,
+            amount: parseFloat(
+              formatUnits(
+                BigInt(frameData.userState.depositAssetAmount ?? '0'),
+                vaultData.asset.decimals
+              )
+            ),
+            symbol: vaultData.asset.symbol
+          }}
+        >
+          {isJustApproved && (
+            <span tw='mb-8'>You've just approved some {vaultData.asset.symbol}!</span>
+          )}
+          <span>Ready to deposit</span>
+        </PrizeVaultFrameImageContent>
+      </FrameImage>
+      <FrameButton>Cancel</FrameButton>
+      <FrameButton
+        action='tx'
+        target={`/prizeVault/${vaultData.id}/deposit?a=${frameData.userState.userAddress}&da=${frameData.userState.depositAssetAmount}`}
+      >
+        Deposit
+      </FrameButton>
+    </FrameContainer>
+  )
+}
+
+const DepositTxSuccessFrame = async (props: FrameProps) => {
+  const { frameData, vaultData, client } = props
+
+  const { shares, assets } = await getBalances(
+    vaultData,
+    client,
+    frameData.userState.userAddress as Address
+  )
+
+  frameData.userState.balance = { shares: shares.toString(), assets: assets.toString() }
+  await saveUserState(frameData.state.fid as number, frameData.userState)
+
+  const formattedDepositAssetAmount = parseFloat(
+    formatUnits(BigInt(frameData.userState.depositAssetAmount ?? '0'), vaultData.asset.decimals)
+  ).toLocaleString('en', { maximumFractionDigits: 4 })
+
+  return (
+    <FrameContainer {...frameData}>
+      <FrameImage aspectRatio='1:1'>
+        <PrizeVaultFrameImageContent
+          vaultData={vaultData}
+          userAddress={frameData.userState.userAddress}
+          shares={shares}
+        >
+          <span>
+            Deposited {formattedDepositAssetAmount} {vaultData.asset.symbol}
+          </span>
+        </PrizeVaultFrameImageContent>
+      </FrameImage>
+      <FrameButton>View Account</FrameButton>
+    </FrameContainer>
+  )
+}
+
+const RedeemParamsFrame = (props: FrameProps) => {
+  const { frameData, vaultData } = props
+
+  const isInvalidAmount =
+    frameData.prevUserState.view === frameData.userState.view && !!frameData.message?.inputText
+
+  return (
+    <FrameContainer {...frameData}>
+      <FrameImage aspectRatio='1:1'>
+        <PrizeVaultFrameImageContent
+          vaultData={vaultData}
+          userAddress={frameData.userState.userAddress}
+          shares={BigInt(frameData.userState.balance?.shares ?? '0')}
         >
           <span>Choose an amount to withdraw (or withdraw all)</span>
           {isInvalidAmount && <span tw='mt-8 text-[#FFB6B6]'>Invalid amount</span>}
@@ -303,54 +305,24 @@ const WithdrawParamsFrame = (props: FrameProps) => {
   )
 }
 
-const WithdrawTxFrame = async (props: FrameProps) => {
-  const { frameData, vaultData, client } = props
-
-  const withdrawShareAmount = frameData.state.wa ?? 0
-
-  const isJustWithdrew =
-    frameData.previousFrame.prevState?.v === View.withdrawTx && !!frameData.message?.transactionId
-
-  if (isJustWithdrew) {
-    const _newShareBalance = await client.readContract({
-      address: vaultData.address,
-      abi: vaultABI,
-      functionName: 'balanceOf',
-      args: [frameData.state.a as Address]
-    })
-
-    const newShareBalance = parseFloat(formatUnits(_newShareBalance, vaultData.token.decimals))
-
-    frameData.state.sb = newShareBalance
-
-    return (
-      <FrameContainer {...frameData}>
-        <FrameImage aspectRatio='1:1'>
-          <PrizeVaultFrameImageContent
-            vaultData={vaultData}
-            userAddress={frameData.state.a}
-            shareBalance={newShareBalance}
-          >
-            <span>
-              Withdrew {withdrawShareAmount.toLocaleString()} {vaultData.symbol}
-            </span>
-          </PrizeVaultFrameImageContent>
-        </FrameImage>
-        <FrameButton>Continue</FrameButton>
-      </FrameContainer>
-    )
-  }
+const RedeemTxFrame = async (props: FrameProps) => {
+  const { frameData, vaultData } = props
 
   return (
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
         <PrizeVaultFrameImageContent
           vaultData={vaultData}
-          userAddress={frameData.state.a}
-          shareBalance={frameData.state.sb}
+          userAddress={frameData.userState.userAddress}
+          shares={BigInt(frameData.userState.balance?.shares ?? '0')}
           extraContent={{
             text: `Withdrawing...`,
-            amount: withdrawShareAmount,
+            amount: parseFloat(
+              formatUnits(
+                BigInt(frameData.userState.redeemShareAmount ?? '0'),
+                vaultData.asset.decimals
+              )
+            ),
             symbol: vaultData.symbol
           }}
         >
@@ -360,10 +332,44 @@ const WithdrawTxFrame = async (props: FrameProps) => {
       <FrameButton>Cancel</FrameButton>
       <FrameButton
         action='tx'
-        target={`/prizeVault/${vaultData.id}/withdraw?a=${frameData.state.a}&wa=${withdrawShareAmount}`}
+        target={`/prizeVault/${vaultData.id}/redeem?a=${frameData.userState.userAddress}&ra=${frameData.userState.redeemShareAmount}`}
       >
         Withdraw
       </FrameButton>
+    </FrameContainer>
+  )
+}
+
+const RedeemTxSuccessFrame = async (props: FrameProps) => {
+  const { frameData, vaultData, client } = props
+
+  const { shares, assets } = await getBalances(
+    vaultData,
+    client,
+    frameData.userState.userAddress as Address
+  )
+
+  frameData.userState.balance = { shares: shares.toString(), assets: assets.toString() }
+  await saveUserState(frameData.state.fid as number, frameData.userState)
+
+  const formattedRedeemShareAmount = parseFloat(
+    formatUnits(BigInt(frameData.userState.redeemShareAmount ?? '0'), vaultData.asset.decimals)
+  ).toLocaleString('en', { maximumFractionDigits: 4 })
+
+  return (
+    <FrameContainer {...frameData}>
+      <FrameImage aspectRatio='1:1'>
+        <PrizeVaultFrameImageContent
+          vaultData={vaultData}
+          userAddress={frameData.userState.userAddress}
+          shares={shares}
+        >
+          <span>
+            Withdrew {formattedRedeemShareAmount} {vaultData.symbol}
+          </span>
+        </PrizeVaultFrameImageContent>
+      </FrameImage>
+      <FrameButton>View Account</FrameButton>
     </FrameContainer>
   )
 }

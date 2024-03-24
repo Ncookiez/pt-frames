@@ -1,17 +1,16 @@
 import type { TransactionTargetResponse } from 'frames.js'
 import type { NextRequest } from 'next/server'
-import { encodeFunctionData, isAddress, parseUnits } from 'viem'
+import { encodeFunctionData, isAddress } from 'viem'
 import type { VaultData } from './types'
 import { erc20ABI, vaultABI } from '@generationsoftware/hyperstructure-client-js'
+import { zeroValue } from '../contants'
 
 export const approve = (vaultData: VaultData, req: NextRequest): TransactionTargetResponse => {
-  const _approvalAmount = req.nextUrl.searchParams.get('aa')
+  const approvalAmount = BigInt(req.nextUrl.searchParams.get('aa') ?? '0')
 
-  if (!_approvalAmount) {
+  if (!approvalAmount) {
     throw new Error('No approval amount set')
   }
-
-  const approvalAmount = parseUnits(_approvalAmount, vaultData.token.decimals)
 
   const calldata = encodeFunctionData({
     abi: erc20ABI,
@@ -24,22 +23,22 @@ export const approve = (vaultData: VaultData, req: NextRequest): TransactionTarg
     method: 'eth_sendTransaction',
     params: {
       abi: erc20ABI,
-      to: vaultData.token.address,
+      to: vaultData.asset.address,
       data: calldata,
-      value: '0'
+      value: zeroValue
     }
   }
 }
 
 export const deposit = (vaultData: VaultData, req: NextRequest): TransactionTargetResponse => {
   const _userAddress = req.nextUrl.searchParams.get('a')
-  const _depositAmount = req.nextUrl.searchParams.get('da')
+  const depositAmount = BigInt(req.nextUrl.searchParams.get('da') ?? '0')
 
   if (!_userAddress) {
     throw new Error('No user address set')
   }
 
-  if (!_depositAmount) {
+  if (!depositAmount) {
     throw new Error('No deposit amount set')
   }
 
@@ -48,8 +47,6 @@ export const deposit = (vaultData: VaultData, req: NextRequest): TransactionTarg
   if (!userAddress) {
     throw new Error('Invalid user address')
   }
-
-  const depositAmount = parseUnits(_depositAmount, vaultData.token.decimals)
 
   const calldata = encodeFunctionData({
     abi: vaultABI,
@@ -64,21 +61,21 @@ export const deposit = (vaultData: VaultData, req: NextRequest): TransactionTarg
       abi: vaultABI,
       to: vaultData.address,
       data: calldata,
-      value: '0'
+      value: zeroValue
     }
   }
 }
 
-export const withdraw = (vaultData: VaultData, req: NextRequest): TransactionTargetResponse => {
+export const redeem = (vaultData: VaultData, req: NextRequest): TransactionTargetResponse => {
   const _userAddress = req.nextUrl.searchParams.get('a')
-  const _withdrawAmount = req.nextUrl.searchParams.get('wa')
+  const redeemAmount = BigInt(req.nextUrl.searchParams.get('ra') ?? '0')
 
   if (!_userAddress) {
     throw new Error('No user address set')
   }
 
-  if (!_withdrawAmount) {
-    throw new Error('No withdraw amount set')
+  if (!redeemAmount) {
+    throw new Error('No redeem amount set')
   }
 
   const userAddress = isAddress(_userAddress) ? _userAddress : undefined
@@ -87,12 +84,10 @@ export const withdraw = (vaultData: VaultData, req: NextRequest): TransactionTar
     throw new Error('Invalid user address')
   }
 
-  const withdrawAmount = parseUnits(_withdrawAmount, vaultData.token.decimals)
-
   const calldata = encodeFunctionData({
     abi: vaultABI,
     functionName: 'redeem',
-    args: [withdrawAmount, userAddress, userAddress]
+    args: [redeemAmount, userAddress, userAddress]
   })
 
   return {
@@ -102,7 +97,7 @@ export const withdraw = (vaultData: VaultData, req: NextRequest): TransactionTar
       abi: vaultABI,
       to: vaultData.address,
       data: calldata,
-      value: '0'
+      value: zeroValue
     }
   }
 }
