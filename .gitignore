@@ -37,3 +37,6 @@ next-env.d.ts
 
 # pm2
 ecosystem.config.js
+
+# data
+/data/
