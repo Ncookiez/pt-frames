@@ -8,7 +8,7 @@ import {
 import { Address, createPublicClient, formatUnits, http } from 'viem'
 import { FrameProps, VaultData, View } from './types'
 import { baseClassName } from './constants'
-import { getBalances, getFrameData } from './utils'
+import { getAbsoluteImgSrc, getBalances, getFrameData } from './utils'
 import { PTLogo, PrizeVaultFrameImageContent } from './FrameImage'
 import { rpcUrls } from '../contants'
 import { saveUserState } from './state'
@@ -16,10 +16,11 @@ import { saveUserState } from './state'
 interface PrizeVaultFrameProps {
   vaultData: VaultData
   searchParams: NextServerPageProps['searchParams']
+  welcomeImgSrc: string
 }
 
 export const PrizeVaultFrame = async (props: PrizeVaultFrameProps) => {
-  const { vaultData, searchParams } = props
+  const { vaultData, searchParams, welcomeImgSrc } = props
 
   const frameData = await getFrameData(vaultData, searchParams)
 
@@ -32,7 +33,7 @@ export const PrizeVaultFrame = async (props: PrizeVaultFrameProps) => {
   const view = frameData.userState.view
 
   if (view === View.welcome) {
-    return <WelcomeFrame {...frameProps} />
+    return <WelcomeFrame {...frameProps} imgSrc={welcomeImgSrc} />
   } else if (view === View.address) {
     return <AddressFrame {...frameProps} />
   } else if (view === View.account) {
@@ -56,18 +57,12 @@ export const PrizeVaultFrame = async (props: PrizeVaultFrameProps) => {
   return <></>
 }
 
-const WelcomeFrame = (props: FrameProps) => {
-  const { frameData, vaultData } = props
+const WelcomeFrame = (props: FrameProps & { imgSrc: string }) => {
+  const { frameData, imgSrc } = props
 
   return (
     <FrameContainer {...frameData}>
-      <FrameImage aspectRatio='1:1'>
-        <div tw={baseClassName}>
-          <span tw='mb-8'>Deposit {vaultData.asset.symbol} for a chance to win daily!</span>
-          <span tw='mb-8'>Withdraw anytime.</span>
-          <PTLogo />
-        </div>
-      </FrameImage>
+      <FrameImage aspectRatio='1:1' src={getAbsoluteImgSrc(imgSrc)} />
       <FrameButton>Deposit</FrameButton>
       <FrameButton>View Account</FrameButton>
       <FrameButton action='link' target='https://pooltogether.com/'>
@@ -88,8 +83,10 @@ const AddressFrame = (props: FrameProps) => {
     <FrameContainer {...frameData}>
       <FrameImage aspectRatio='1:1'>
         <div tw={baseClassName}>
-          <span tw='mb-8'>Enter your wallet address</span>
-          {isInvalidWalletAddress && <span tw='mb-8 text-[#FFB6B6]'>Invalid wallet address</span>}
+          <div tw='flex flex-col items-center text-center mb-16'>
+            <span tw='text-5xl'>Enter your wallet address to get started</span>
+            {isInvalidWalletAddress && <span tw='mt-8 text-[#FFB6B6]'>Invalid wallet address</span>}
+          </div>
           <PTLogo />
         </div>
       </FrameImage>
@@ -182,7 +179,7 @@ const ApproveTxFrame = async (props: FrameProps) => {
           userAddress={frameData.userState.userAddress}
           shares={BigInt(frameData.userState.balance?.shares ?? '0')}
           extraContent={{
-            text: `Approving...`,
+            text: `Approving`,
             amount: parseFloat(
               formatUnits(
                 BigInt(frameData.userState.depositAssetAmount ?? '0'),
@@ -192,7 +189,7 @@ const ApproveTxFrame = async (props: FrameProps) => {
             symbol: vaultData.asset.symbol
           }}
         >
-          <span>You need to approve these tokens to deposit</span>
+          <span>Approve these tokens to deposit</span>
         </PrizeVaultFrameImageContent>
       </FrameImage>
       <FrameButton>Cancel</FrameButton>
@@ -221,7 +218,7 @@ const DepositTxFrame = async (props: FrameProps) => {
           userAddress={frameData.userState.userAddress}
           shares={BigInt(frameData.userState.balance?.shares ?? '0')}
           extraContent={{
-            text: `Depositing...`,
+            text: `Depositing`,
             amount: parseFloat(
               formatUnits(
                 BigInt(frameData.userState.depositAssetAmount ?? '0'),
@@ -297,7 +294,8 @@ const RedeemParamsFrame = (props: FrameProps) => {
           userAddress={frameData.userState.userAddress}
           shares={BigInt(frameData.userState.balance?.shares ?? '0')}
         >
-          <span>Choose an amount to withdraw (or withdraw all)</span>
+          <span>Choose an amount to withdraw</span>
+          <span tw='mt-4'>(or withdraw all)</span>
           {isInvalidAmount && <span tw='mt-8 text-[#FFB6B6]'>Invalid amount</span>}
         </PrizeVaultFrameImageContent>
       </FrameImage>
@@ -320,7 +318,7 @@ const RedeemTxFrame = async (props: FrameProps) => {
           userAddress={frameData.userState.userAddress}
           shares={BigInt(frameData.userState.balance?.shares ?? '0')}
           extraContent={{
-            text: `Withdrawing...`,
+            text: `Withdrawing`,
             amount: parseFloat(
               formatUnits(
                 BigInt(frameData.userState.redeemShareAmount ?? '0'),

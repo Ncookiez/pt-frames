@@ -78,3 +78,13 @@ export const getBalances = async (
     allowance: balances[2].result as bigint
   }
 }
+
+export const getAbsoluteImgSrc = (imgSrc: string) => {
+  const host = process.env.NEXT_PUBLIC_HOST ?? 'http://localhost:3000'
+
+  if (host.charAt(host.length - 1) === '/') {
+    return host.slice(0, host.length - 1) + imgSrc
+  } else {
+    return host + imgSrc
+  }
+}

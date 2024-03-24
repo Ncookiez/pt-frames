@@ -3,5 +3,11 @@ import { vaultData } from './config'
 import { PrizeVaultFrame } from '../Frame'
 
 export default async function Home({ searchParams }: NextServerPageProps) {
-  return <PrizeVaultFrame vaultData={vaultData} searchParams={searchParams} />
+  return (
+    <PrizeVaultFrame
+      vaultData={vaultData}
+      searchParams={searchParams}
+      welcomeImgSrc='/welcome/pUSDC.png'
+    />
+  )
 }

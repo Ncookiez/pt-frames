@@ -17,8 +17,8 @@ export const PrizeVaultFrameImageContent = (props: PrizeVaultFrameImageContentPr
 
   return (
     <div tw={baseClassName}>
-      <Card tw='w-full grow'>{children}</Card>
-      <Card tw='w-full flex-row justify-start mt-8'>
+      <Card tw='w-full grow text-center text-5xl'>{children}</Card>
+      <Card tw='w-full flex-row items-start justify-start mt-8'>
         <div tw='flex flex-col grow items-center'>
           <span tw='font-semibold'>Balance</span>
           {shares !== undefined ? (
@@ -35,7 +35,7 @@ export const PrizeVaultFrameImageContent = (props: PrizeVaultFrameImageContentPr
         {extraContent !== undefined && (
           <div tw='w-1/2 flex flex-col items-center border-l-2 border-[#f5f0ff]'>
             <span>{extraContent.text}</span>
-            <span>
+            <span tw='mt-3'>
               {extraContent.amount.toLocaleString('en', {
                 maximumFractionDigits: 4
               })}{' '}
@@ -45,8 +45,10 @@ export const PrizeVaultFrameImageContent = (props: PrizeVaultFrameImageContentPr
         )}
       </Card>
       <div tw='w-full flex mt-8'>
-        <PTLogo />
-        <Card tw='grow ml-8 bg-[#C8ADFF] text-[#24095B]'>
+        <div tw='flex p-8'>
+          <PTLogo />
+        </div>
+        <Card tw='grow ml-8 bg-[#36147D]'>
           <span>Connected Account:</span>
           {!!userAddress ? <span>{shorten(userAddress)}</span> : <span>-</span>}
         </Card>
